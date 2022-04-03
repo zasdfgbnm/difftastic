@@ -309,10 +309,14 @@ impl Edge {
             ReplacedComment { levenshtein_pct } => 150 + u64::from(100 - levenshtein_pct),
 
             // Otherwise, we've added/removed a node.
-            NovelAtomLHS { contiguous }
-            | NovelAtomRHS { contiguous }
-            | EnterNovelDelimiterLHS { contiguous }
-            | EnterNovelDelimiterRHS { contiguous } => {
+            NovelAtomLHS { contiguous } | NovelAtomRHS { contiguous } => {
+                if *contiguous {
+                    351
+                } else {
+                    300
+                }
+            }
+            EnterNovelDelimiterLHS { contiguous } | EnterNovelDelimiterRHS { contiguous } => {
                 if *contiguous {
                     300
                 } else {

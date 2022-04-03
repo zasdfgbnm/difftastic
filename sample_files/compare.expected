@@ -65,7 +65,7 @@ sample_files/jsx_before.jsx sample_files/jsx_after.jsx
 43ac617752545bcf832a18c7f856012f  -
 
 sample_files/load_before.js sample_files/load_after.js
-58df6bfac4f237d3a1dd9201e7873f1c  -
+ea3434efb876eba068b30db068b82518  -
 
 sample_files/lua_before.lua sample_files/lua_after.lua
 c3d81271c060bd97dd246c1c5ea6a138  -
@@ -128,7 +128,7 @@ sample_files/todomvc_before.gleam sample_files/todomvc_after.gleam
 c1d8b44875121d81c583dd3a8fb43232  -
 
 sample_files/typing_before.ml sample_files/typing_after.ml
-ceba89e4ffc8406454d337638c7d45e6  -
+3941fd44b0bf744da834a0b3eda1ba76  -
 
 sample_files/zig_before.zig sample_files/zig_after.zig
 fb12532adf98607fc20836b4a6ccd6d8  -
