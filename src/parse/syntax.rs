@@ -346,16 +346,40 @@ impl<'a> Syntax<'a> {
     }
 }
 
-pub fn enclosing_start_lines<'a>(nodes: &[&'a Syntax<'a>]) -> HashMap<LineNumber, Vec<LineNumber>> {
-    let mut res = HashMap::new();
-    walk_enclosing_start_lines(nodes, &[], &mut res);
+#[derive(Debug)]
+pub struct EnclosingLinesInfo {
+    pub lhs_starts: HashMap<LineNumber, Vec<LineNumber>>,
+    pub rhs_starts: HashMap<LineNumber, Vec<LineNumber>>,
+    pub lhs_ends: HashMap<LineNumber, Vec<LineNumber>>,
+    pub rhs_ends: HashMap<LineNumber, Vec<LineNumber>>,
+}
 
-    res
+impl EnclosingLinesInfo {
+    pub fn new<'a>(lhs_nodes: &[&'a Syntax<'a>], rhs_nodes: &[&'a Syntax<'a>]) -> Self {
+        let mut lhs_starts = HashMap::new();
+        walk_enclosing_start_lines(lhs_nodes, &[], &mut lhs_starts);
+
+        let mut rhs_starts = HashMap::new();
+        walk_enclosing_start_lines(rhs_nodes, &[], &mut rhs_starts);
+
+        let mut lhs_ends = HashMap::new();
+        walk_enclosing_end_lines(lhs_nodes, &[], &mut lhs_ends);
+
+        let mut rhs_ends = HashMap::new();
+        walk_enclosing_end_lines(rhs_nodes, &[], &mut rhs_ends);
+
+        EnclosingLinesInfo {
+            lhs_starts,
+            rhs_starts,
+            lhs_ends,
+            rhs_ends,
+        }
+    }
 }
 
 fn walk_enclosing_start_lines<'a>(
     nodes: &[&'a Syntax<'a>],
-    parent_enclosing: &[LineNumber],
+    enclosing: &[LineNumber],
     blocks_including: &mut HashMap<LineNumber, Vec<LineNumber>>,
 ) {
     for node in nodes {
@@ -366,7 +390,11 @@ fn walk_enclosing_start_lines<'a>(
                 ..
             } => {
                 if let Some(position) = open_position.first() {
-                    let mut enclosing = parent_enclosing.to_vec();
+                    let mut enclosing = enclosing.to_vec();
+
+                    if !blocks_including.contains_key(&position.line) {
+                        blocks_including.insert(position.line, enclosing.clone());
+                    }
 
                     if let Some(last) = enclosing.last() {
                         if *last != position.line {
@@ -376,29 +404,18 @@ fn walk_enclosing_start_lines<'a>(
                         enclosing.push(position.line);
                     }
 
-                    if !blocks_including.contains_key(&position.line) {
-                        blocks_including.insert(position.line, enclosing.clone());
-                    }
-
                     walk_enclosing_start_lines(children, &enclosing, blocks_including)
                 }
             }
             Atom { position, .. } => {
                 for line_span in position {
                     if !blocks_including.contains_key(&line_span.line) {
-                        blocks_including.insert(line_span.line, parent_enclosing.into());
+                        blocks_including.insert(line_span.line, enclosing.into());
                     }
                 }
             }
         }
     }
-}
-
-pub fn enclosing_end_lines<'a>(nodes: &[&'a Syntax<'a>]) -> HashMap<LineNumber, Vec<LineNumber>> {
-    let mut res = HashMap::new();
-    walk_enclosing_end_lines(nodes, &[], &mut res);
-
-    res
 }
 
 fn walk_enclosing_end_lines<'a>(
@@ -416,16 +433,16 @@ fn walk_enclosing_end_lines<'a>(
                 if let Some(position) = close_position.last() {
                     let mut enclosing = parent_enclosing.to_vec();
 
+                    if !blocks_including.contains_key(&position.line) {
+                        blocks_including.insert(position.line, enclosing.clone());
+                    }
+
                     if let Some(last) = enclosing.last() {
                         if *last != position.line {
                             enclosing.push(position.line);
                         }
                     } else {
                         enclosing.push(position.line);
-                    }
-
-                    if !blocks_including.contains_key(&position.line) {
-                        blocks_including.insert(position.line, enclosing.clone());
                     }
 
                     walk_enclosing_end_lines(children, &enclosing, blocks_including)

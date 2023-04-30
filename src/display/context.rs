@@ -7,7 +7,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
     lines::LineNumber,
-    parse::syntax::{zip_repeat_shorter, MatchKind, MatchedPos},
+    parse::syntax::{zip_repeat_shorter, EnclosingLinesInfo, MatchKind, MatchedPos},
 };
 
 pub fn all_matched_lines_filled(
@@ -414,6 +414,51 @@ fn before_with_opposites(
     res
 }
 
+fn pad_before_enclosing(
+    ln: LineNumber,
+    num_context_lines: usize,
+    is_lhs: bool,
+    enclosing_lines: &EnclosingLinesInfo,
+) -> Vec<LineNumber> {
+    let mut res = vec![];
+
+    let starts = if is_lhs {
+        &enclosing_lines.lhs_starts
+    } else {
+        &enclosing_lines.rhs_starts
+    };
+
+    let earliest = if ln.0 > num_context_lines as u32 {
+        ln.0 - num_context_lines as u32
+    } else {
+        0
+    };
+
+    // Previous enclosing block that's still within the context limit.
+    let mut prev_line_enclosing: LineNumber = if let Some(enclosing_starts) = starts.get(&ln) {
+        enclosing_starts
+            .iter()
+            .copied()
+            .find(|enc_ln| enc_ln.0 <= earliest)
+            .unwrap_or(ln.clone())
+    } else {
+        ln
+    };
+
+    // TODO: any previous lines (up to `earliest`) that have the same enclosing_starts.
+
+    // Any previous blank lines that are still within the context limit.
+    while prev_line_enclosing.0 > earliest && !starts.contains_key(&prev_line_enclosing) {
+        prev_line_enclosing = (prev_line_enclosing.0 - 1).into();
+    }
+
+    for n in prev_line_enclosing.0..ln.0 {
+        res.push(n.into());
+    }
+
+    res
+}
+
 fn pad_before(ln: LineNumber, num_context_lines: usize) -> Vec<LineNumber> {
     let mut res = vec![];
 
@@ -510,6 +555,15 @@ fn after_with_opposites(
     }
 
     res
+}
+
+pub fn calculate_before_context_enclosing(
+    lines: &[(Option<LineNumber>, Option<LineNumber>)],
+    opposite_to_lhs: &FxHashMap<LineNumber, HashSet<LineNumber>>,
+    opposite_to_rhs: &FxHashMap<LineNumber, HashSet<LineNumber>>,
+    num_context_lines: usize,
+) -> Vec<(Option<LineNumber>, Option<LineNumber>)> {
+    vec![]
 }
 
 pub fn calculate_before_context(
