@@ -63,6 +63,7 @@ static GLOBAL: MiMalloc = MiMalloc;
 use diff::sliders::fix_all_sliders;
 use options::{DiffOptions, DisplayMode, DisplayOptions, FileArgument, Mode};
 use owo_colors::OwoColorize;
+use parse::syntax::enclosing_start_lines;
 use rayon::prelude::*;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -477,6 +478,10 @@ fn diff_file_content(
                                 let mut lhs_positions = syntax::change_positions(&lhs, &change_map);
                                 let mut rhs_positions = syntax::change_positions(&rhs, &change_map);
 
+                                let enclosing_starts = enclosing_start_lines(&lhs);
+                                let enclosing_ends = enclosing_start_lines(&rhs);
+                                dbg!(enclosing_starts);
+
                                 if diff_options.ignore_comments {
                                     let lhs_comments =
                                         tsp::comment_positions(&lhs_tree, &lhs_src, &ts_lang);
@@ -546,7 +551,7 @@ fn diff_file_content(
     let opposite_to_rhs = opposite_positions(&rhs_positions);
 
     let hunks = matched_pos_to_hunks(&lhs_positions, &rhs_positions);
-    let hunks = merge_adjacent(
+    let _hunks = merge_adjacent(
         &hunks,
         &opposite_to_lhs,
         &opposite_to_rhs,

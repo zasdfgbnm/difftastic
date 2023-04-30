@@ -370,8 +370,10 @@ fn walk_enclosing_start_lines<'a>(
 
                     if let Some(last) = enclosing.last() {
                         if *last != position.line {
-                            enclosing.push(last.clone());
+                            enclosing.push(position.line);
                         }
+                    } else {
+                        enclosing.push(position.line);
                     }
 
                     if !blocks_including.contains_key(&position.line) {
@@ -416,8 +418,10 @@ fn walk_enclosing_end_lines<'a>(
 
                     if let Some(last) = enclosing.last() {
                         if *last != position.line {
-                            enclosing.push(last.clone());
+                            enclosing.push(position.line);
                         }
+                    } else {
+                        enclosing.push(position.line);
                     }
 
                     if !blocks_including.contains_key(&position.line) {
