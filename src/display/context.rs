@@ -439,7 +439,7 @@ fn pad_before_enclosing(
         enclosing_starts
             .iter()
             .copied()
-            .find(|enc_ln| enc_ln.0 <= earliest)
+            .find(|enc_ln| enc_ln.0 >= earliest)
             .unwrap_or(ln.clone())
     } else {
         ln
@@ -453,6 +453,50 @@ fn pad_before_enclosing(
     }
 
     for n in prev_line_enclosing.0..ln.0 {
+        res.push(n.into());
+    }
+
+    res
+}
+
+fn pad_after_enclosing(
+    ln: LineNumber,
+    num_context_lines: usize,
+    max_line: LineNumber,
+    is_lhs: bool,
+    enclosing_lines: &EnclosingLinesInfo,
+) -> Vec<LineNumber> {
+    let mut res = vec![];
+
+    let ends = if is_lhs {
+        &enclosing_lines.lhs_ends
+    } else {
+        &enclosing_lines.rhs_ends
+    };
+
+    let latest = if ln.0 + num_context_lines as u32 > max_line.0 {
+        max_line.0
+    } else {
+        ln.0 + num_context_lines as u32
+    };
+
+    // Trailing enclosing block that's still within the context limit.
+    let mut next_line_enclosing: LineNumber = if let Some(enclosing_ends) = ends.get(&ln) {
+        enclosing_ends
+            .iter()
+            .copied()
+            .find(|enc_ln| enc_ln.0 <= latest)
+            .unwrap_or(ln.clone())
+    } else {
+        ln
+    };
+
+    // Any following blank lines that are still within the context limit.
+    while next_line_enclosing.0 < latest && !ends.contains_key(&next_line_enclosing) {
+        next_line_enclosing = (next_line_enclosing.0 - 1).into();
+    }
+
+    for n in ln.0 + 1..next_line_enclosing.0 {
         res.push(n.into());
     }
 
@@ -562,8 +606,24 @@ pub fn calculate_before_context_enclosing(
     opposite_to_lhs: &FxHashMap<LineNumber, HashSet<LineNumber>>,
     opposite_to_rhs: &FxHashMap<LineNumber, HashSet<LineNumber>>,
     num_context_lines: usize,
+    enclosing_lines: &EnclosingLinesInfo,
 ) -> Vec<(Option<LineNumber>, Option<LineNumber>)> {
-    vec![]
+    match lines.first() {
+        Some(first_line) => match *first_line {
+            (Some(lhs_line), _) => {
+                let padded_lines =
+                    pad_before_enclosing(lhs_line, num_context_lines, true, enclosing_lines);
+                before_with_opposites(&padded_lines, opposite_to_lhs)
+            }
+            (_, Some(rhs_line)) => {
+                let padded_lines =
+                    pad_before_enclosing(rhs_line, num_context_lines, false, enclosing_lines);
+                flip_tuples(&before_with_opposites(&padded_lines, opposite_to_rhs))
+            }
+            (None, None) => vec![],
+        },
+        None => vec![],
+    }
 }
 
 pub fn calculate_before_context(
